@@ -146,6 +146,45 @@ create_latest () {
   cd -
 }
 
+# Finds and retrieves the latest version of the documentation based on the directory structure.
+# Assumes the documentation versions are numeric folders within 'docs/docs/'.
+get_latest_version () {
+  # Find the latest numeric folder within 'docs/docs/' structure
+  local latest=$(ls -d docs/docs/[0-9]* | sort -V | tail -1)
+
+  # Extract the version number from the latest directory path
+  local latest_version=$(basename "${latest}")
+  
+  # Return the latest version number
+  echo "${latest_version}"
+}
+
+# Creates a 'latest' version of the documentation based on a specified ICEBERG_VERSION.
+# Arguments:
+#   $1: LAKEKEEPER_VERSION - The version number of the documentation to be treated as the latest.
+create_latest () {
+  echo " --> create latest"
+
+  local LAKEKEEPER_VERSION="$1"
+
+  assert_not_empty "${LAKEKEEPER_VERSION}"
+
+
+  # Remove any existing 'latest' directory and recreate it
+  rm -rf docs/docs/latest/
+  mkdir docs/docs/latest/
+
+  # Create symbolic links and copy configuration files for the 'latest' documentation
+  ln -s "../${LAKEKEEPER_VERSION}/docs" docs/docs/latest/docs
+  cp "docs/docs/${LAKEKEEPER_VERSION}/mkdocs.yml" docs/docs/latest/
+
+  cd docs/docs/
+
+  # Update version information within the 'latest' documentation
+  update_version "latest"
+  cd -
+}
+
 # Sets up local worktrees for the documentation and performs operations related to different versions.
 pull_versioned_docs () {
   echo " --> pull versioned docs"
