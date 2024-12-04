@@ -139,6 +139,8 @@ create_latest () {
   ln -s "../${LAKEKEEPER_VERSION}/docs" docs/docs/latest/docs
   cp "docs/docs/${LAKEKEEPER_VERSION}/mkdocs.yml" docs/docs/latest/
 
+  create_api_docs "nightly"
+
   cd docs/docs/
 
   # Update version information within the 'latest' documentation
@@ -169,7 +171,6 @@ create_latest () {
 
   assert_not_empty "${LAKEKEEPER_VERSION}"
 
-
   # Remove any existing 'latest' directory and recreate it
   rm -rf docs/docs/latest/
   mkdir docs/docs/latest/
@@ -178,11 +179,61 @@ create_latest () {
   ln -s "../${LAKEKEEPER_VERSION}/docs" docs/docs/latest/docs
   cp "docs/docs/${LAKEKEEPER_VERSION}/mkdocs.yml" docs/docs/latest/
 
+  #create_api_docs "latest"
+
   cd docs/docs/
 
   # Update version information within the 'latest' documentation
   update_version "latest"
   cd -
+}
+
+create_api_docs () {
+  echo " --> create api docs"
+
+  local LAKEKEEPER_VERSION="$1"
+  local MANAGEMENT_DIR="docs/docs/${LAKEKEEPER_VERSION}/api/management"
+  local CATALOG_DIR="docs/docs/${LAKEKEEPER_VERSION}/api/catalog"
+
+  assert_not_empty "${LAKEKEEPER_VERSION}"
+
+  SWAGGER_VERSION=$(curl -sL https://api.github.com/repos/swagger-api/swagger-ui/releases/latest | jq -r ".tag_name")
+
+  # Delete the api documentation if it exists
+  rm -fr "docs/${LAKEKEEPER_VERSION}/api/"
+
+  # Download the swagger release
+  curl -sL -o $SWAGGER_VERSION https://api.github.com/repos/swagger-api/swagger-ui/tarball/$SWAGGER_VERSION
+
+  # Extract the dist directory
+  tar -xzf $SWAGGER_VERSION --strip-components=1 $(tar -tzf $SWAGGER_VERSION | head -1 | cut -f1 -d"/")/dist
+  
+  rm $SWAGGER_VERSION
+
+  mkdir -p "${MANAGEMENT_DIR}" "${CATALOG_DIR}"
+
+  # Fix references in index.html
+  sed -i "s|href=\"./|href=\"dist/|g" dist/index.html
+  sed -i "s|src=\"./|src=\"dist/|g" dist/index.html
+  sed -i "s|href=\"index|href=\"dist/index|g" dist/index.html
+
+  # Copy index.html to both directories
+  cp dist/index.html "${MANAGEMENT_DIR}"
+  cp dist/index.html "${CATALOG_DIR}"
+
+  # Fix references in dist/swagger-initializer and copy to the respective directories
+  sed -i "s|https://petstore.swagger.io/v2/swagger.json|management-open-api.yaml|g" dist/swagger-initializer.js
+  cp -R dist "${MANAGEMENT_DIR}"
+
+  sed -i "s|https://petstore.swagger.io/v2/swagger.json|rest-catalog-open-api.yaml|g" dist/swagger-initializer.js
+  cp -R dist "${CATALOG_DIR}"
+
+  # copy api yaml files to dist folders
+  cp ../openapi/management-open-api.yaml "${MANAGEMENT_DIR}/dist"
+  cp ../openapi/rest-catalog-open-api.yaml "${CATALOG_DIR}/dist"
+
+  rm -fr dest index.html
+
 }
 
 # Sets up local worktrees for the documentation and performs operations related to different versions.

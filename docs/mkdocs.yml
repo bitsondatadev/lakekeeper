@@ -4,6 +4,9 @@ plugins:
   - search
 
 nav:
+    - API:
+      - Management: api/management/index.html
+      - Catalog: api/catalog/index.html
   - Concepts: concepts.md
   - User Guide:
       - deployment.md
