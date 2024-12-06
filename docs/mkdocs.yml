@@ -5,6 +5,9 @@ plugins:
 
 nav:
   - Concepts: concepts.md
+    #- API:
+    #  - Management: api/management/index.html
+    #  - Catalog: api/catalog/index.html
   - User Guide:
       - bootstrap.md
       - configuration.md
